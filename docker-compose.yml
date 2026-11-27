@@ -1,0 +1,42 @@
+# Docker Compose cho bản Node.js (KHÔNG thay thế backend/project-web/docker-compose.yml của bản Java)
+name: np-bookstore
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: np-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Thiếu MYSQL_ROOT_PASSWORD trong file .env}
+      MYSQL_DATABASE: ${DB_NAME:-bookstore1}
+      # User riêng cho ứng dụng (chỉ có quyền trên DB bookstore1) -> nguyên tắc quyền tối thiểu
+      MYSQL_USER: ${DB_USER:-bookstore_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Thiếu DB_PASSWORD trong file .env}
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "${DB_PORT:-3307}:3306"
+    volumes:
+      - np_mysql_data:/var/lib/mysql
+      # Chỉ chạy 1 lần khi volume còn trống: nạp dữ liệu chuẩn từ dump hiện có
+      - ./database/bookstore.sql:/docker-entrypoint-initdb.d/01-bookstore.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Hộp thư giả lập cho môi trường dev (tùy chọn): chạy bằng `npm run mail:up`
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: np-mailpit
+    profiles: ["mail"]
+    ports:
+      - "8025:8025" # Giao diện web xem email
+      - "1025:1025" # SMTP
+
+volumes:
+  np_mysql_data:

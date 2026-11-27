@@ -1,0 +1,15 @@
+# Node
+node_modules/
+dist/
+coverage/
+*.log
+
+# Môi trường - không bao giờ commit
+.env
+.env.*
+!.env.example
+
+# macOS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
